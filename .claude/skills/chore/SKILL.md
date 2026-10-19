@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Glob, Grep, Write
 
 Recibe en `$ARGUMENTS` una tarea de mantenimiento. Tu único propósito es investigar y escribir un plan prescriptivo; no la implementes.
 
+**Rama:** cada trabajo va en su propia rama con el formato `chore/<nombre-descriptivo-en-kebab-case>` (p. ej. `chore/actualizar-dependencias-go`). Tras `git status --short --branch`, si la rama actual no es ya la de este trabajo, créala con `git checkout -b chore/<nombre>` antes de escribir el plan, para que plan y cambios posteriores queden en ella. Los cambios sin commit se arrastran a la rama nueva; no los toques. Indica el nombre de la rama en el informe final.
+
 1. Comprueba `git status --short --branch` y localiza las convenciones, versiones y automatizaciones relevantes.
 2. Verifica el estado actual en el repositorio. No supongas herramientas, paquetes ni scripts que no existan.
 3. Identifica compatibilidad, configuración, documentación y posibles efectos operativos.

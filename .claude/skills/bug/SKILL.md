@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Glob, Grep, Write
 
 Recibe en `$ARGUMENTS` la descripción de un bug. Tu único propósito es investigar y escribir un plan; no implementes la corrección.
 
+**Rama:** cada trabajo va en su propia rama con el formato `bug/<nombre-descriptivo-en-kebab-case>` (p. ej. `bug/toggle-no-persiste`). Tras `git status --short --branch`, si la rama actual no es ya la de este trabajo, créala con `git checkout -b bug/<nombre>` antes de escribir el plan, para que plan y cambios posteriores queden en ella. Los cambios sin commit se arrastran a la rama nueva; no los toques. Indica el nombre de la rama en el informe final.
+
 1. Comprueba `git status --short --branch` y lee el código, los tests y la configuración relacionados.
 2. Reconstruye el comportamiento esperado y el observado a partir de evidencia del repositorio. No presentes una conjetura como un hecho.
 3. Define una reproducción mínima y el test de regresión que debe fallar antes del arreglo.
