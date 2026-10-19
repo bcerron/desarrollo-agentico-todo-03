@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Glob, Grep, Write
 
 Recibe en `$ARGUMENTS` la descripción de una funcionalidad. Tu único propósito es investigar y escribir un plan ejecutable; no implementes la funcionalidad.
 
+**Rama:** cada trabajo va en su propia rama con el formato `feature/<nombre-descriptivo-en-kebab-case>` (p. ej. `feature/reordenar-tareas-drag-and-drop`). Tras `git status --short --branch`, si la rama actual no es ya la de este trabajo, créala con `git checkout -b feature/<nombre>` antes de escribir el plan, para que plan y cambios posteriores queden en ella. Los cambios sin commit se arrastran a la rama nueva; no los toques. Indica el nombre de la rama en el informe final.
+
 1. Comprueba `git status --short --branch` y recorre el flujo existente desde rutas Buffalo y acciones hasta modelos, migraciones, templates Plush y assets cuando sean relevantes.
 2. Convierte la petición en comportamiento observable y criterios de aceptación. Distingue requisitos explícitos de inferencias.
 3. Busca patrones existentes y define el cambio vertical mínimo; no inventes una arquitectura paralela.
