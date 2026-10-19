@@ -1,0 +1,2 @@
+add_column("tasks", "position", "integer", {"default": 0})
+raw("UPDATE tasks SET position = t.rn FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY created_at, id) AS rn FROM tasks) t WHERE tasks.id = t.id")

@@ -7,12 +7,18 @@
 
 <section aria-labelledby="list-heading">
   <h2 id="list-heading" class="sr-only">Lista de tareas</h2>
+  <p id="reorder-status" class="sr-only" aria-live="polite"></p>
   <%= if (len(tasks) == 0) { %>
     <p class="empty-state">No hay tareas todavía. Añade la primera con el formulario.</p>
   <% } else { %>
-    <ul class="task-list">
+    <ul class="task-list"<%= if (len(tasks) > 1) { %> data-reorder-url="/tasks/reorder"<% } %>>
       <%= for (t) in tasks { %>
-        <li class="task<%= if (t.Completed) { %> task-completed<% } %>">
+        <li class="task<%= if (t.Completed) { %> task-completed<% } %>" data-task-id="<%= t.ID %>">
+          <%= if (len(tasks) > 1) { %>
+            <button type="button" class="drag-handle" data-drag-handle aria-label="Reordenar tarea: <%= t.Title %>. Usa Alt + flecha arriba o abajo para moverla." title="Arrastrar para reordenar">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" /></svg>
+            </button>
+          <% } %>
           <form action="/tasks/<%= t.ID %>/toggle" method="POST" class="task-toggle" data-task-toggle>
             <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
             <input type="hidden" name="_method" value="PUT">

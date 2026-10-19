@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
+	"github.com/gofrs/uuid"
 )
 
 // TasksIndex muestra la lista de tareas y el formulario de creación.
@@ -16,7 +18,7 @@ func TasksIndex(c buffalo.Context) error {
 	tx := c.Value("tx").(*pop.Connection)
 
 	tasks := models.Tasks{}
-	if err := tx.Order("created_at asc, id asc").All(&tasks); err != nil {
+	if err := tasks.LoadOrdered(tx); err != nil {
 		return err
 	}
 
@@ -36,6 +38,12 @@ func TasksCreate(c buffalo.Context) error {
 	}
 	task.Title = strings.TrimSpace(task.Title)
 
+	position, err := models.NextPosition(tx)
+	if err != nil {
+		return err
+	}
+	task.Position = position
+
 	verrs, err := tx.ValidateAndCreate(task)
 	if err != nil {
 		return err
@@ -43,7 +51,7 @@ func TasksCreate(c buffalo.Context) error {
 
 	if verrs.HasAny() {
 		tasks := models.Tasks{}
-		if err := tx.Order("created_at asc, id asc").All(&tasks); err != nil {
+		if err := tasks.LoadOrdered(tx); err != nil {
 			return err
 		}
 
@@ -117,6 +125,52 @@ func TasksToggle(c buffalo.Context) error {
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/")
+}
+
+// TasksReorder guarda el orden de la lista. Recibe en "ids" el conjunto completo
+// de tareas en el orden deseado; si no coincide con el existente responde 409.
+func TasksReorder(c buffalo.Context) error {
+	tx := c.Value("tx").(*pop.Connection)
+
+	if err := c.Request().ParseForm(); err != nil {
+		return c.Error(http.StatusBadRequest, err)
+	}
+	ids := c.Request().Form["ids"]
+
+	tasks := models.Tasks{}
+	if err := tasks.LoadOrdered(tx); err != nil {
+		return err
+	}
+
+	if len(ids) != len(tasks) {
+		return c.Error(http.StatusConflict, errors.New("la lista de tareas ha cambiado"))
+	}
+	byID := make(map[uuid.UUID]*models.Task, len(tasks))
+	for i := range tasks {
+		byID[tasks[i].ID] = &tasks[i]
+	}
+	ordered := make([]*models.Task, 0, len(ids))
+	for _, raw := range ids {
+		id, err := uuid.FromString(raw)
+		if err != nil {
+			return c.Error(http.StatusConflict, errors.New("identificador de tarea no válido"))
+		}
+		task, ok := byID[id]
+		if !ok {
+			return c.Error(http.StatusConflict, errors.New("la lista de tareas ha cambiado"))
+		}
+		delete(byID, id)
+		ordered = append(ordered, task)
+	}
+
+	for i, task := range ordered {
+		task.Position = i + 1
+		if err := tx.UpdateColumns(task, "position"); err != nil {
+			return err
+		}
+	}
+
+	return c.Render(http.StatusNoContent, nil)
 }
 
 // TasksDestroy elimina una tarea.

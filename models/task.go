@@ -18,6 +18,7 @@ type Task struct {
 	ID        uuid.UUID `json:"id" db:"id" form:"-"`
 	Title     string    `json:"title" db:"title" form:"title"`
 	Completed bool      `json:"completed" db:"completed" form:"-"`
+	Position  int       `json:"position" db:"position" form:"-"`
 	CreatedAt time.Time `json:"created_at" db:"created_at" form:"-"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at" form:"-"`
 }
@@ -37,4 +38,19 @@ func (t *Task) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	}
 
 	return verrs, nil
+}
+
+// LoadOrdered carga todas las tareas en el orden de la lista.
+// El desempate por created_at e id es necesario porque position puede repetirse.
+func (ts *Tasks) LoadOrdered(tx *pop.Connection) error {
+	return tx.Order("position asc, created_at asc, id asc").All(ts)
+}
+
+// NextPosition devuelve la posición que ocupa una tarea nueva al final de la lista.
+func NextPosition(tx *pop.Connection) (int, error) {
+	var next int
+	if err := tx.RawQuery("SELECT COALESCE(MAX(position), 0) + 1 FROM tasks").First(&next); err != nil {
+		return 0, err
+	}
+	return next, nil
 }
