@@ -31,5 +31,5 @@ document.addEventListener("submit", function (event) {
     status.remove();
   }
 
-  fetch(form.action);
+  fetch(form.action, { method: "POST", body: new FormData(form) });
 });
