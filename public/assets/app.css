@@ -223,6 +223,46 @@ h1 {
   background: #fcf0ec;
 }
 
+.drag-handle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-height: 44px;
+  padding: 0;
+  color: #9a9a94;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: grab;
+}
+
+.drag-handle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.drag-handle:hover {
+  color: var(--color-text);
+  background: #f2f2ee;
+}
+
+.drag-handle:focus-visible {
+  outline: 3px solid var(--color-focus);
+}
+
+.js .task-list[data-reorder-url] .task {
+  grid-template-columns: 28px 44px minmax(0, 1fr) auto;
+}
+
+.js .drag-handle {
+  display: inline-flex;
+}
+
+.task-dragging {
+  opacity: 0.45;
+}
+
 .new-task {
   margin-top: 0.75rem;
 }
@@ -435,6 +475,10 @@ input:focus-visible {
 
   .task {
     grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+
+  .js .task-list[data-reorder-url] .task {
+    grid-template-columns: 28px 36px minmax(0, 1fr) auto;
   }
 
   .task-toggle-button,

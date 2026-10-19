@@ -245,3 +245,120 @@ func (as *ActionSuite) Test_TasksUpdate_InvalidID() {
 	res := as.HTML("/tasks/no-es-un-uuid").Put(url.Values{"title": {"Título nuevo"}})
 	as.Equal(404, res.Code)
 }
+
+func (as *ActionSuite) createPositioned(title string, position int) *models.Task {
+	task := &models.Task{Title: title, Position: position}
+	as.NoError(as.DB.Create(task))
+	return task
+}
+
+func (as *ActionSuite) positionOf(task *models.Task) int {
+	as.NoError(as.DB.Reload(task))
+	return task.Position
+}
+
+func (as *ActionSuite) Test_TasksIndex_OrdersByPosition() {
+	as.createPositioned("Creada primero", 2)
+	as.createPositioned("Creada después", 1)
+
+	body := as.HTML("/").Get().Body.String()
+	as.Less(strings.Index(body, "Creada después"), strings.Index(body, "Creada primero"))
+}
+
+func (as *ActionSuite) Test_TasksCreate_AppendsAtEnd() {
+	as.createPositioned("Existente A", 1)
+	as.createPositioned("Existente B", 7)
+
+	res := as.HTML("/tasks").Post(&models.Task{Title: "Al final"})
+	as.Equal(303, res.Code)
+
+	task := &models.Task{}
+	as.NoError(as.DB.Where("title = ?", "Al final").First(task))
+	as.Equal(8, task.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_PersistsOrder() {
+	a := as.createPositioned("A", 1)
+	b := as.createPositioned("B", 2)
+	c := as.createPositioned("C", 3)
+
+	res := as.HTML("/tasks/reorder").Put(url.Values{"ids": {c.ID.String(), a.ID.String(), b.ID.String()}})
+	as.Equal(204, res.Code)
+
+	as.Equal(1, as.positionOf(c))
+	as.Equal(2, as.positionOf(a))
+	as.Equal(3, as.positionOf(b))
+
+	body := as.HTML("/").Get().Body.String()
+	as.Less(strings.Index(body, "tarea: C"), strings.Index(body, "tarea: A"))
+	as.Less(strings.Index(body, "tarea: A"), strings.Index(body, "tarea: B"))
+}
+
+func (as *ActionSuite) Test_TasksReorder_DoesNotChangeOtherFields() {
+	a := &models.Task{Title: "Hecha", Completed: true, Position: 1}
+	as.NoError(as.DB.Create(a))
+	b := as.createPositioned("Pendiente", 2)
+
+	res := as.HTML("/tasks/reorder").Put(url.Values{"ids": {b.ID.String(), a.ID.String()}})
+	as.Equal(204, res.Code)
+
+	as.NoError(as.DB.Reload(a))
+	as.Equal("Hecha", a.Title)
+	as.True(a.Completed)
+	as.NoError(as.DB.Reload(b))
+	as.Equal("Pendiente", b.Title)
+	as.False(b.Completed)
+}
+
+func (as *ActionSuite) Test_TasksReorder_MissingTask_Conflict() {
+	a := as.createPositioned("A", 1)
+	b := as.createPositioned("B", 2)
+
+	res := as.HTML("/tasks/reorder").Put(url.Values{"ids": {b.ID.String()}})
+	as.Equal(409, res.Code)
+	as.Equal(1, as.positionOf(a))
+	as.Equal(2, as.positionOf(b))
+}
+
+func (as *ActionSuite) Test_TasksReorder_DuplicateID_Conflict() {
+	a := as.createPositioned("A", 1)
+	b := as.createPositioned("B", 2)
+
+	res := as.HTML("/tasks/reorder").Put(url.Values{"ids": {b.ID.String(), b.ID.String()}})
+	as.Equal(409, res.Code)
+	as.Equal(1, as.positionOf(a))
+	as.Equal(2, as.positionOf(b))
+}
+
+func (as *ActionSuite) Test_TasksReorder_InvalidID_Conflict() {
+	a := as.createPositioned("A", 1)
+	b := as.createPositioned("B", 2)
+
+	res := as.HTML("/tasks/reorder").Put(url.Values{"ids": {b.ID.String(), "no-es-un-uuid"}})
+	as.Equal(409, res.Code)
+	res = as.HTML("/tasks/reorder").Put(url.Values{"ids": {b.ID.String(), uuid.Must(uuid.NewV4()).String()}})
+	as.Equal(409, res.Code)
+	as.Equal(1, as.positionOf(a))
+	as.Equal(2, as.positionOf(b))
+}
+
+func (as *ActionSuite) Test_TasksReorder_PostWithMethodOverride() {
+	a := as.createPositioned("A", 1)
+	b := as.createPositioned("B", 2)
+
+	res := as.HTML("/tasks/reorder").Post(url.Values{"_method": {"PUT"}, "ids": {b.ID.String(), a.ID.String()}})
+	as.Equal(204, res.Code)
+	as.Equal(1, as.positionOf(b))
+	as.Equal(2, as.positionOf(a))
+}
+
+func (as *ActionSuite) Test_TasksReorder_Route_DoesNotShadowUpdate() {
+	task := as.taskForEditing(false)
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{"title": {"Sigue editando"}})
+	as.Equal(303, res.Code)
+	as.NoError(as.DB.Reload(task))
+	as.Equal("Sigue editando", task.Title)
+
+	res = as.HTML("/tasks/reorder").Put(url.Values{"ids": {task.ID.String()}})
+	as.Equal(204, res.Code)
+}
