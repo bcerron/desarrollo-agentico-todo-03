@@ -1,25 +1,25 @@
 ---
 name: adw
-description: Workflow agéntico completo para una issue - clasifica la descripción como feature, bug o chore, crea la rama, planifica, implementa, valida y hace commit
+description: Workflow agéntico completo para una issue - clasifica la descripción como feature, bug o chore, crea la rama, planifica, implementa, valida, hace commit y abre un pull request
 allowed-tools: Bash, Read, Glob, Grep, Write, Edit, Skill
 ---
 
 # Workflow agéntico de una issue
 
-Coordina las skills existentes de principio a fin: clasificación → rama → plan (`/feature`, `/bug` o `/chore`) → `/implement` → comprobaciones → `/git:commit`. No hace push, merge ni abre pull requests. No hace preguntas: debe poder ejecutarse con `claude -p`.
+Coordina las skills existentes de principio a fin: clasificación → rama → plan (`/feature`, `/bug` o `/chore`) → `/implement` → comprobaciones → `/git:commit` → push y pull request. Nunca hace merge. No hace preguntas: debe poder ejecutarse con `claude -p`.
 
 Uso: `/adw <descripción | url-o-número-de-issue> [--remote <remoto>] [--base <rama>]`
 
 - Si `$ARGUMENTS` (sin las opciones) es una URL de issue de GitHub o `#<número>`, lee la issue con `gh issue view <issue> --json number,title,body,url`; la descripción es el título más el cuerpo, seguidos de la URL. Es el modo que usa `adws/trigger-github.sh`.
 - En cualquier otro caso, el texto es la descripción.
-- `--base` es la rama de partida (por defecto `main`). `--remote` solo se usa para actualizar la base antes de crear la rama; el workflow nunca hace push.
+- `--base` es la rama de partida y la base del pull request (por defecto `main`). `--remote` es el remoto desde el que se actualiza la base y al que se sube la rama (por defecto `origin`).
 
 Si la descripción está vacía o no permite saber qué hay que hacer, detente e indica el uso correcto.
 
 ## 1. Precondiciones
 
 1. Ejecuta `git status --short --branch`. Si hay cambios sin commit, **detente** y explícalo: el workflow no debe arrastrar trabajo ajeno a la rama de la issue.
-2. Si se indicó `--remote`, ejecuta `git fetch <remoto> <base>`. Cambia a la base con `git checkout <base>` y, si hay remoto, `git merge --ff-only <remoto>/<base>`. Si el fast-forward falla, detente.
+2. Ejecuta `git fetch <remoto> <base>`, cambia a la base con `git checkout <base>` y actualízala con `git merge --ff-only <remoto>/<base>`. Si el fast-forward falla, detente.
 
 ## 2. Clasificación
 
@@ -81,6 +81,22 @@ Revisa también `git diff --check`.
 
 Solo con todas las comprobaciones en verde, invoca la skill `git:commit` indicando como alcance el plan y los archivos modificados por la implementación. Si viene de una issue, añade al mensaje una línea `Refs #<número>`.
 
+## 8. Pull request
+
+Solo si el commit se ha creado:
+
+1. Sube la rama: `git push -u <remoto> <tipo>/<slug>`. Nunca uses `--force`.
+2. Obtén el repositorio destino `OWNER/REPO` a partir de `git remote get-url <remoto>` y pásalo **siempre** con `--repo`: en un fork, `gh` puede apuntar por defecto al repositorio padre y el PR acabaría en otro sitio.
+3. Si ya existe un PR para la rama (`gh pr view <tipo>/<slug> --repo OWNER/REPO`), no crees otro: informa de su URL.
+4. Crea el PR con `gh pr create --repo OWNER/REPO --base <base> --head <tipo>/<slug> --title "<primera línea del commit>" --body-file <archivo>`. Escribe el cuerpo en un archivo temporal fuera del repositorio, en español, con:
+   - `## Resumen`: qué cambia y por qué, en 2-4 viñetas;
+   - `## Tipo`: el tipo elegido y su justificación;
+   - `## Plan`: la ruta del plan;
+   - `## Comprobaciones`: resultado de cada comprobación del paso 6;
+   - si viene de una issue del mismo repositorio, una línea `Closes #<número>`;
+   - como última línea: `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+5. Si el push o la creación del PR fallan (permisos, autenticación, remoto inexistente), detente y repórtalo: el commit local queda hecho.
+
 ## Informe final
 
 Resume en pocas líneas:
@@ -88,4 +104,4 @@ Resume en pocas líneas:
 - tipo elegido y su justificación, rama creada y ruta del plan;
 - archivos cambiados;
 - resultado de cada comprobación;
-- hash y mensaje del commit, o el punto exacto en que se detuvo y por qué.
+- hash y mensaje del commit y URL del pull request, o el punto exacto en que se detuvo y por qué.
