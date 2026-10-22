@@ -17,15 +17,34 @@ import (
 func TasksIndex(c buffalo.Context) error {
 	tx := c.Value("tx").(*pop.Connection)
 
+	query := searchQuery(c.Param("q"))
+
 	tasks := models.Tasks{}
-	if err := tasks.LoadOrdered(tx); err != nil {
+	var err error
+	if query == "" {
+		err = tasks.LoadOrdered(tx)
+	} else {
+		err = tasks.LoadOrderedMatching(tx, query)
+	}
+	if err != nil {
 		return err
 	}
 
 	c.Set("tasks", tasks)
+	c.Set("query", query)
 	c.Set("task", &models.Task{})
 	c.Set("errors", validate.NewErrors())
 	return c.Render(http.StatusOK, r.HTML("tasks/index.plush.html"))
+}
+
+// searchQuery normaliza el texto de búsqueda: sin espacios en los extremos y
+// como mucho TitleMaxLength caracteres, porque un título nunca es más largo.
+func searchQuery(raw string) string {
+	query := []rune(strings.TrimSpace(raw))
+	if len(query) > models.TitleMaxLength {
+		query = query[:models.TitleMaxLength]
+	}
+	return string(query)
 }
 
 // TasksCreate crea una tarea nueva a partir del formulario.
@@ -56,6 +75,7 @@ func TasksCreate(c buffalo.Context) error {
 		}
 
 		c.Set("tasks", tasks)
+		c.Set("query", "")
 		c.Set("task", task)
 		c.Set("errors", verrs)
 		return c.Render(http.StatusUnprocessableEntity, r.HTML("tasks/index.plush.html"))

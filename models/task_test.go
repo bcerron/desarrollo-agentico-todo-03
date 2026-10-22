@@ -118,3 +118,31 @@ func (ms *ModelSuite) Test_NextPosition() {
 	ms.NoError(err)
 	ms.Equal(5, next)
 }
+
+func (ms *ModelSuite) Test_Tasks_LoadOrderedMatching_CaseInsensitiveSubstring() {
+	ms.NoError(ms.DB.Create(&Task{Title: "comprar pan", Position: 3}))
+	ms.NoError(ms.DB.Create(&Task{Title: "Llamar al gestor", Position: 2}))
+	ms.NoError(ms.DB.Create(&Task{Title: "Comprar café", Position: 1}))
+
+	tasks := Tasks{}
+	ms.NoError(tasks.LoadOrderedMatching(ms.DB, "COMPRAR"))
+	ms.Len(tasks, 2)
+	ms.Equal("Comprar café", tasks[0].Title)
+	ms.Equal("comprar pan", tasks[1].Title)
+}
+
+func (ms *ModelSuite) Test_Tasks_LoadOrderedMatching_EscapesWildcards() {
+	for _, title := range []string{"100% hecho", "1000 hecho", "a_b", "axb"} {
+		ms.NoError(ms.DB.Create(&Task{Title: title}))
+	}
+
+	tasks := Tasks{}
+	ms.NoError(tasks.LoadOrderedMatching(ms.DB, "0%"))
+	ms.Len(tasks, 1)
+	ms.Equal("100% hecho", tasks[0].Title)
+
+	tasks = Tasks{}
+	ms.NoError(tasks.LoadOrderedMatching(ms.DB, "a_b"))
+	ms.Len(tasks, 1)
+	ms.Equal("a_b", tasks[0].Title)
+}

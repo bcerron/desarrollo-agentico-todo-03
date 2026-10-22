@@ -362,3 +362,68 @@ func (as *ActionSuite) Test_TasksReorder_Route_DoesNotShadowUpdate() {
 	res = as.HTML("/tasks/reorder").Put(url.Values{"ids": {task.ID.String()}})
 	as.Equal(204, res.Code)
 }
+
+func (as *ActionSuite) Test_TasksIndex_ShowsSearchForm() {
+	body := as.HTML("/").Get().Body.String()
+	as.Contains(body, `name="q"`)
+	as.Contains(body, `role="search"`)
+}
+
+func (as *ActionSuite) Test_TasksIndex_Search_FiltersByTitle() {
+	as.LoadFixture("tres tareas")
+
+	res := as.HTML("/?%s", url.Values{"q": {"gestor"}}.Encode()).Get()
+	as.Equal(200, res.Code)
+
+	body := res.Body.String()
+	as.Contains(body, "Llamar al gestor")
+	as.NotContains(body, "Comprar material de oficina")
+	as.NotContains(body, "Publicar la oferta de empleo")
+	as.Contains(body, "1 resultado para")
+	as.Contains(body, "Limpiar búsqueda")
+}
+
+func (as *ActionSuite) Test_TasksIndex_Search_CaseInsensitive() {
+	as.LoadFixture("tres tareas")
+
+	body := as.HTML("/?%s", url.Values{"q": {"COMPRAR"}}.Encode()).Get().Body.String()
+	as.Contains(body, "Comprar material de oficina")
+}
+
+func (as *ActionSuite) Test_TasksIndex_Search_NoResults() {
+	as.LoadFixture("tres tareas")
+
+	body := as.HTML("/?%s", url.Values{"q": {"inexistente"}}.Encode()).Get().Body.String()
+	as.Contains(body, "Ninguna tarea coincide")
+	as.NotContains(body, "No hay tareas todavía")
+}
+
+func (as *ActionSuite) Test_TasksIndex_Search_BlankShowsAll() {
+	as.LoadFixture("tres tareas")
+
+	body := as.HTML("/?%s", url.Values{"q": {"  "}}.Encode()).Get().Body.String()
+	as.Contains(body, "Comprar material de oficina")
+	as.Contains(body, "Llamar al gestor")
+	as.Contains(body, "Publicar la oferta de empleo")
+	as.NotContains(body, "Limpiar búsqueda")
+}
+
+func (as *ActionSuite) Test_TasksIndex_Search_DisablesReorder() {
+	as.createPositioned("Informe mensual", 1)
+	as.createPositioned("Informe anual", 2)
+
+	filtered := as.HTML("/?%s", url.Values{"q": {"informe"}}.Encode()).Get().Body.String()
+	as.Contains(filtered, "Informe mensual")
+	as.Contains(filtered, "Informe anual")
+	as.NotContains(filtered, "data-reorder-url")
+	as.NotContains(filtered, "data-drag-handle")
+
+	all := as.HTML("/").Get().Body.String()
+	as.Contains(all, "data-reorder-url")
+}
+
+func (as *ActionSuite) Test_TasksIndex_Search_EscapesQuery() {
+	body := as.HTML("/?%s", url.Values{"q": {"<script>"}}.Encode()).Get().Body.String()
+	as.NotContains(body, "<script>")
+	as.Contains(body, "&lt;script&gt;")
+}

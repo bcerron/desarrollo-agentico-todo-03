@@ -273,7 +273,8 @@ h1 {
   line-height: 1;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="search"] {
   width: 100%;
   min-width: 0;
   min-height: 44px;
@@ -287,6 +288,23 @@ input[type="text"] {
 
 .new-task-row input {
   flex: 1;
+}
+
+.search-form {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.search-form input {
+  flex: 1;
+}
+
+.search-clear {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 input::placeholder {

@@ -40,10 +40,23 @@ func (t *Task) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	return verrs, nil
 }
 
-// LoadOrdered carga todas las tareas en el orden de la lista.
+// orderedBy es el orden de la lista.
 // El desempate por created_at e id es necesario porque position puede repetirse.
+const orderedBy = "position asc, created_at asc, id asc"
+
+// likeEscaper escapa los comodines de LIKE para que se busquen literalmente.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// LoadOrdered carga todas las tareas en el orden de la lista.
 func (ts *Tasks) LoadOrdered(tx *pop.Connection) error {
-	return tx.Order("position asc, created_at asc, id asc").All(ts)
+	return tx.Order(orderedBy).All(ts)
+}
+
+// LoadOrderedMatching carga, en el orden de la lista, las tareas cuyo título
+// contiene query sin distinguir mayúsculas. Los comodines de LIKE se tratan literalmente.
+func (ts *Tasks) LoadOrderedMatching(tx *pop.Connection, query string) error {
+	pattern := "%" + likeEscaper.Replace(query) + "%"
+	return tx.Where(`title ILIKE ? ESCAPE '\'`, pattern).Order(orderedBy).All(ts)
 }
 
 // NextPosition devuelve la posición que ocupa una tarea nueva al final de la lista.
