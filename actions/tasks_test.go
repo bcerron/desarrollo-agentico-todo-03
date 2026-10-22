@@ -3,9 +3,11 @@ package actions
 import (
 	"net/url"
 	"strings"
+	"time"
 
 	"todo/models"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
 )
 
@@ -361,4 +363,77 @@ func (as *ActionSuite) Test_TasksReorder_Route_DoesNotShadowUpdate() {
 
 	res = as.HTML("/tasks/reorder").Put(url.Values{"ids": {task.ID.String()}})
 	as.Equal(204, res.Code)
+}
+
+func (as *ActionSuite) Test_TasksCreate_WithDueDate() {
+	res := as.HTML("/tasks").Post(url.Values{"title": {"Con fecha"}, "due_date": {"2099-06-15"}})
+	as.Equal(303, res.Code)
+
+	task := &models.Task{}
+	as.NoError(as.DB.Where("title = ?", "Con fecha").First(task))
+	as.True(task.DueDate.Valid)
+	as.Equal("2099-06-15", task.DueDate.Time.UTC().Format("2006-01-02"))
+}
+
+func (as *ActionSuite) Test_TasksCreate_WithoutDueDate() {
+	res := as.HTML("/tasks").Post(url.Values{"title": {"Sin fecha"}})
+	as.Equal(303, res.Code)
+
+	task := &models.Task{}
+	as.NoError(as.DB.Where("title = ?", "Sin fecha").First(task))
+	as.False(task.DueDate.Valid)
+}
+
+func (as *ActionSuite) Test_TasksUpdate_ChangesDueDate() {
+	task := as.taskForEditing(false)
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{"title": {"Título original"}, "due_date": {"2099-03-20"}})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.True(task.DueDate.Valid)
+	as.Equal("2099-03-20", task.DueDate.Time.UTC().Format("2006-01-02"))
+}
+
+func (as *ActionSuite) Test_TasksUpdate_ClearsDueDate() {
+	due := time.Date(2099, 6, 15, 0, 0, 0, 0, time.UTC)
+	task := &models.Task{Title: "Con fecha", DueDate: nulls.NewTime(due)}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{"title": {"Con fecha"}, "due_date": {""}})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.False(task.DueDate.Valid)
+}
+
+func (as *ActionSuite) Test_TasksIndex_ShowsDueDate() {
+	due := time.Date(2099, 6, 15, 0, 0, 0, 0, time.UTC)
+	as.NoError(as.DB.Create(&models.Task{Title: "Tarea con fecha", DueDate: nulls.NewTime(due), Position: 1}))
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+	as.Contains(res.Body.String(), "15/06/2099")
+}
+
+func (as *ActionSuite) Test_TasksIndex_ShowsOverdueClass() {
+	past := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	as.NoError(as.DB.Create(&models.Task{Title: "Vencida", DueDate: nulls.NewTime(past), Completed: false, Position: 1}))
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+	as.Contains(res.Body.String(), "task-overdue")
+}
+
+func (as *ActionSuite) Test_TasksEdit_ShowsDueDate() {
+	due := time.Date(2099, 6, 15, 0, 0, 0, 0, time.UTC)
+	task := &models.Task{Title: "Con fecha", DueDate: nulls.NewTime(due)}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	res := as.HTML("/tasks/%s/edit", task.ID).Get()
+	as.Equal(200, res.Code)
+	as.Contains(res.Body.String(), `value="2099-06-15"`)
 }

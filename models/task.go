@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gofrs/uuid"
@@ -18,9 +19,21 @@ type Task struct {
 	ID        uuid.UUID `json:"id" db:"id" form:"-"`
 	Title     string    `json:"title" db:"title" form:"title"`
 	Completed bool      `json:"completed" db:"completed" form:"-"`
-	Position  int       `json:"position" db:"position" form:"-"`
-	CreatedAt time.Time `json:"created_at" db:"created_at" form:"-"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at" form:"-"`
+	Position  int        `json:"position" db:"position" form:"-"`
+	DueDate   nulls.Time `json:"due_date" db:"due_date" form:"-"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at" form:"-"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at" form:"-"`
+}
+
+// IsOverdue devuelve true si la tarea tiene fecha límite, no está completada
+// y la fecha límite es anterior a hoy (comparando solo el día en UTC).
+func (t *Task) IsOverdue() bool {
+	if !t.DueDate.Valid || t.Completed {
+		return false
+	}
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	due := t.DueDate.Time.UTC().Truncate(24 * time.Hour)
+	return due.Before(today)
 }
 
 // Tasks es una colección de Task.

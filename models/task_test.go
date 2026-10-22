@@ -3,6 +3,8 @@ package models
 import (
 	"strings"
 	"time"
+
+	"github.com/gobuffalo/nulls"
 )
 
 func (ms *ModelSuite) Test_Task_Create_Valid() {
@@ -104,6 +106,49 @@ func (ms *ModelSuite) Test_Tasks_LoadOrdered_TieBreaksByCreatedAtThenID() {
 	tasks = Tasks{}
 	ms.NoError(tasks.LoadOrdered(ms.DB))
 	ms.True(tasks[0].ID.String() < tasks[1].ID.String())
+}
+
+func (ms *ModelSuite) Test_Task_Create_WithDueDate() {
+	due := time.Date(2099, 6, 15, 0, 0, 0, 0, time.UTC)
+	task := &Task{Title: "Con fecha", DueDate: nulls.NewTime(due)}
+
+	verrs, err := ms.DB.ValidateAndCreate(task)
+	ms.NoError(err)
+	ms.False(verrs.HasAny())
+
+	reloaded := &Task{}
+	ms.NoError(ms.DB.Find(reloaded, task.ID))
+	ms.True(reloaded.DueDate.Valid)
+	ms.Equal(due.Format("2006-01-02"), reloaded.DueDate.Time.UTC().Format("2006-01-02"))
+}
+
+func (ms *ModelSuite) Test_Task_Create_WithoutDueDate() {
+	task := &Task{Title: "Sin fecha"}
+
+	verrs, err := ms.DB.ValidateAndCreate(task)
+	ms.NoError(err)
+	ms.False(verrs.HasAny())
+
+	reloaded := &Task{}
+	ms.NoError(ms.DB.Find(reloaded, task.ID))
+	ms.False(reloaded.DueDate.Valid)
+}
+
+func (ms *ModelSuite) Test_Task_IsOverdue() {
+	past := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	future := time.Date(2099, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	overdue := &Task{Title: "Vencida", DueDate: nulls.NewTime(past), Completed: false}
+	ms.True(overdue.IsOverdue())
+
+	notYet := &Task{Title: "Futura", DueDate: nulls.NewTime(future), Completed: false}
+	ms.False(notYet.IsOverdue())
+
+	completedPast := &Task{Title: "Completada pasada", DueDate: nulls.NewTime(past), Completed: true}
+	ms.False(completedPast.IsOverdue())
+
+	noDue := &Task{Title: "Sin fecha", Completed: false}
+	ms.False(noDue.IsOverdue())
 }
 
 func (ms *ModelSuite) Test_NextPosition() {

@@ -13,7 +13,7 @@
   <% } else { %>
     <ul class="task-list"<%= if (len(tasks) > 1) { %> data-reorder-url="/tasks/reorder"<% } %>>
       <%= for (t) in tasks { %>
-        <li class="task<%= if (t.Completed) { %> task-completed<% } %>" data-task-id="<%= t.ID %>">
+        <li class="task<%= if (t.Completed) { %> task-completed<% } %><%= if (t.IsOverdue()) { %> task-overdue<% } %>" data-task-id="<%= t.ID %>">
           <%= if (len(tasks) > 1) { %>
             <button type="button" class="drag-handle icon-button icon-button-ghost" data-drag-handle aria-label="Reordenar tarea: <%= t.Title %>. Usa Alt + flecha arriba o abajo para moverla." title="Arrastrar para reordenar">
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" /></svg>
@@ -36,6 +36,9 @@
             </button>
           </form>
           <span class="task-title"><%= t.Title %></span>
+          <%= if (t.DueDate.Valid) { %>
+            <span class="task-due-date"><%= t.DueDate.Time.Format("02/01/2006") %></span>
+          <% } %>
           <%= if (t.Completed) { %>
             <span class="task-status">Completada</span>
           <% } %>
@@ -75,6 +78,14 @@
       maxlength="200"
       autocomplete="off"
       <%= if (errors.HasAny()) { %>autofocus aria-invalid="true" aria-describedby="title-error"<% } %>
+    >
+    <label for="task-due-date" class="sr-only">Fecha límite</label>
+    <input
+      id="task-due-date"
+      type="date"
+      name="due_date"
+      <%= if (task.DueDate.Valid) { %>value="<%= task.DueDate.Time.Format("2006-01-02") %>"<% } %>
+      title="Fecha límite (opcional)"
     >
     <button type="submit" class="button button-primary">Añadir</button>
   </div>
