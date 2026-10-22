@@ -127,7 +127,7 @@ h1 {
 
 .task {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto;
   align-items: start;
   column-gap: 0.3rem;
   min-height: 61px;
@@ -141,6 +141,22 @@ h1 {
   padding: 0.65rem 0;
   overflow-wrap: anywhere;
   line-height: 1.55;
+}
+
+.task-due-date {
+  align-self: center;
+  flex-shrink: 0;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  background: var(--color-sidebar);
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.task-overdue .task-due-date {
+  color: var(--color-danger);
+  background: #fff0eb;
 }
 
 .icon-button {
@@ -240,7 +256,7 @@ h1 {
 }
 
 .js .task-list[data-reorder-url] .task {
-  grid-template-columns: 28px 44px minmax(0, 1fr) auto;
+  grid-template-columns: 28px 44px minmax(0, 1fr) auto auto;
 }
 
 .js .drag-handle {
@@ -285,8 +301,23 @@ input[type="text"] {
   border-radius: var(--radius);
 }
 
-.new-task-row input {
+.new-task-row input[type="text"] {
   flex: 1;
+}
+
+input[type="date"] {
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  background: #ffffff;
+  border: 1px solid #92928a;
+  border-radius: var(--radius);
+}
+
+.edit-task label[for="task-due-date"] {
+  margin-top: 1.25rem;
 }
 
 input::placeholder {
@@ -460,11 +491,11 @@ input:focus-visible {
   }
 
   .task {
-    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
   }
 
   .js .task-list[data-reorder-url] .task {
-    grid-template-columns: 28px 36px minmax(0, 1fr) auto;
+    grid-template-columns: 28px 36px minmax(0, 1fr) auto auto;
   }
 
   .task-toggle-button,

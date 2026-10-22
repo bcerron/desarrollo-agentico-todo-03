@@ -4,10 +4,12 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"todo/models"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gofrs/uuid"
@@ -37,6 +39,7 @@ func TasksCreate(c buffalo.Context) error {
 		return err
 	}
 	task.Title = strings.TrimSpace(task.Title)
+	task.DueDate = parseDueDate(c.Request().FormValue("due_date"))
 
 	position, err := models.NextPosition(tx)
 	if err != nil {
@@ -95,6 +98,7 @@ func TasksUpdate(c buffalo.Context) error {
 		return err
 	}
 	task.Title = strings.TrimSpace(input.Title)
+	task.DueDate = parseDueDate(c.Request().FormValue("due_date"))
 
 	verrs, err := tx.ValidateAndUpdate(task)
 	if err != nil {
@@ -188,4 +192,18 @@ func TasksDestroy(c buffalo.Context) error {
 
 	c.Flash().Add("success", "Tarea eliminada.")
 	return c.Redirect(http.StatusSeeOther, "/")
+}
+
+// parseDueDate convierte una cadena "YYYY-MM-DD" en nulls.Time.
+// Si la cadena está vacía o no es válida, devuelve un nulls.Time sin valor.
+func parseDueDate(raw string) nulls.Time {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nulls.Time{}
+	}
+	t, err := time.Parse("2006-01-02", raw)
+	if err != nil {
+		return nulls.Time{}
+	}
+	return nulls.NewTime(t)
 }
