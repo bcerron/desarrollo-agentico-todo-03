@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Glob, Grep, Write, Edit, Skill
 
 Coordina las skills existentes de principio a fin: clasificación → rama → plan (`/feature`, `/bug` o `/chore`) → `/implement` → comprobaciones → `/git:commit` → push y pull request. Nunca hace merge. No hace preguntas: debe poder ejecutarse con `claude -p`.
 
+**Ejecución continua.** Los pasos 1 a 8 son una sola ejecución. Cuando una skill invocada (`feature`, `bug`, `chore`, `implement`, `git:commit`) termina con su informe, ese informe es un resultado intermedio, no el final del trabajo: no lo devuelvas al usuario ni esperes confirmación, y pasa inmediatamente al paso siguiente. Ignora las sugerencias de "siguiente paso" de esas skills (como `Sugiere /implement <ruta>`): el siguiente paso lo marca este workflow. Solo terminas al llegar al **Informe final**, ya sea con el pull request abierto o porque una condición de parada explícita de este documento se ha cumplido.
+
 Uso: `/adw <descripción | url-o-número-de-issue> [--remote <remoto>] [--base <rama>]`
 
 - Si `$ARGUMENTS` (sin las opciones) es una URL de issue de GitHub o `#<número>`, lee la issue con `gh issue view <issue> --json number,title,body,url`; la descripción es el título más el cuerpo, seguidos de la URL. Es el modo que usa `adws/trigger-github.sh`.
@@ -18,7 +20,7 @@ Si la descripción está vacía o no permite saber qué hay que hacer, detente e
 
 ## 1. Precondiciones
 
-1. Ejecuta `git status --short --branch`. Si hay cambios sin commit, **detente** y explícalo: el workflow no debe arrastrar trabajo ajeno a la rama de la issue.
+1. Ejecuta `git status --short --branch`. Si hay archivos versionados modificados o en el índice, **detente** y explícalo: el workflow no debe arrastrar trabajo ajeno a la rama de la issue. Los archivos sin seguimiento (`??`) no bloquean: déjalos como están y no los incluyas nunca en el commit.
 2. Ejecuta `git fetch <remoto> <base>`, cambia a la base con `git checkout <base>` y actualízala con `git merge --ff-only <remoto>/<base>`. Si el fast-forward falla, detente.
 3. Comprueba que la petición no esté ya resuelta o en curso en un pull request anterior (ver abajo). Si lo está, termina aquí: no crees rama ni plan.
 
@@ -62,11 +64,11 @@ La skill de planificación detectará que ya está en la rama del trabajo y no c
 
 Invoca con la herramienta `Skill` la skill del tipo (`feature`, `bug` o `chore`) pasando como argumentos la descripción y la ruta exacta del plan: `plans/<tipo>-<slug>.md`.
 
-Comprueba que el plan existe y contiene las secciones exigidas por esa skill. Si la skill informó de incertidumbres que bloquean la implementación (requisito ambiguo, secretos, decisión de producto), detente aquí y repórtalas.
+Comprueba que el plan existe y contiene las secciones exigidas por esa skill. Si la skill informó de incertidumbres que bloquean la implementación (requisito ambiguo, secretos, decisión de producto), detente aquí y repórtalas. Si no hay bloqueos, continúa sin pausa con el paso 5.
 
 ## 5. Implementación
 
-Invoca la skill `implement` con la ruta del plan. Si `implement` se detiene por un bloqueo, detente también y reporta el motivo; no rediseñes la solución.
+Invoca la skill `implement` con la ruta del plan. Si `implement` se detiene por un bloqueo, detente también y reporta el motivo; no rediseñes la solución. Si termina sin bloqueo, continúa con el paso 6.
 
 ## 6. Comprobaciones
 
@@ -87,11 +89,13 @@ Si alguna comprobación falla:
 - máximo **3 intentos**. Si siguen fallando, o el arreglo exige salirse del plan, detente sin commit y reporta la salida del error;
 - nunca desactives, borres ni debilites tests para obtener verde.
 
+Excepción para fallos preexistentes: si un test falla en un paquete que la rama no modifica (`git diff --name-only <base>...HEAD` y `git status --short` no tocan ese paquete), comprueba si falla igual en la base con `git stash -u`, `git checkout <base>`, el mismo `go test`, y vuelta con `git checkout <tipo>/<slug>` y `git stash pop`. Si también falla en la base, no es una regresión de este trabajo: no lo corrijas, continúa y recógelo en `## Comprobaciones` del pull request con la salida resumida. CI lo volverá a ejecutar sobre el PR.
+
 Revisa también `git diff --check`.
 
 ## 7. Commit
 
-Solo con todas las comprobaciones en verde, invoca la skill `git:commit` indicando como alcance el plan y los archivos modificados por la implementación. Si viene de una issue, añade al mensaje una línea `Refs #<número>`.
+Solo con todas las comprobaciones en verde, invoca la skill `git:commit` indicando como alcance el plan y los archivos modificados por la implementación. Si viene de una issue, añade al mensaje una línea `Refs #<número>`. Con el commit creado, continúa con el paso 8.
 
 ## 8. Pull request
 
