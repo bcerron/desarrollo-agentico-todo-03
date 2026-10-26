@@ -20,6 +20,18 @@ Si la descripción está vacía o no permite saber qué hay que hacer, detente e
 
 1. Ejecuta `git status --short --branch`. Si hay cambios sin commit, **detente** y explícalo: el workflow no debe arrastrar trabajo ajeno a la rama de la issue.
 2. Ejecuta `git fetch <remoto> <base>`, cambia a la base con `git checkout <base>` y actualízala con `git merge --ff-only <remoto>/<base>`. Si el fast-forward falla, detente.
+3. Comprueba que la petición no esté ya resuelta o en curso en un pull request anterior (ver abajo). Si lo está, termina aquí: no crees rama ni plan.
+
+### ¿Ya resuelta?
+
+Obtén `OWNER/REPO` de `git remote get-url <remoto>` y lista los pull requests con `gh pr list --repo OWNER/REPO --state all --limit 100 --json number,title,body,state,url,headRefName`. Selecciona como candidatos los que traten la misma funcionalidad, fallo o tarea que la descripción (por título, cuerpo, rama, plan enlazado o `Closes/Refs #<número>` de esta issue), no los que solo compartan palabras sueltas. Revisa cada candidato con `gh pr view <número> --repo OWNER/REPO` y `gh pr diff <número> --repo OWNER/REPO`.
+
+- **Fusionado (`MERGED`) que cubre la petición completa**: confírmalo en el código de la base actualizada (rutas, plantillas, modelos o tests que demuestren el comportamiento pedido). Solo si el código lo confirma, la petición está resuelta:
+  - si viene de una issue, ciérrala con `gh issue close <número> --repo OWNER/REPO --reason "not planned" --comment "<texto>"`, donde el texto, en español, indica que ya está resuelta, enlaza el PR y resume en 1-2 líneas dónde está el comportamiento en el código;
+  - si viene de una descripción en texto, no hay nada que cerrar: infórmalo.
+- **Abierto (`OPEN`) que cubre la petición**: el trabajo ya está en curso. No la cierres ni dupliques el trabajo; si viene de una issue, comenta en ella con `gh issue comment <número> --repo OWNER/REPO --body "<texto>"` enlazando el PR, y termina.
+- **Cerrado sin fusionar (`CLOSED`)**: no cuenta como resuelto. Continúa y menciónalo en el cuerpo del pull request.
+- **Cobertura parcial o dudosa**: continúa con el flujo normal y cita el PR relacionado en el cuerpo del pull request. Ante la duda, no descartes: cerrar por error una issue válida es peor que repetir un plan.
 
 ## 2. Clasificación
 
@@ -101,6 +113,7 @@ Solo si el commit se ha creado:
 
 Resume en pocas líneas:
 
+- si se descartó por estar resuelta o en curso: el PR que la cubre, la evidencia en el código y si la issue se cerró o se comentó;
 - tipo elegido y su justificación, rama creada y ruta del plan;
 - archivos cambiados;
 - resultado de cada comprobación;
