@@ -36,6 +36,7 @@
             </button>
           </form>
           <span class="task-title"><%= t.Title %></span>
+          <span class="task-created-date"><%= t.CreatedAt.Format("02/01/2006") %></span>
           <%= if (t.DueDate.Valid) { %>
             <span class="task-due-date"><%= t.DueDate.Time.Format("02/01/2006") %></span>
           <% } %>

@@ -437,3 +437,15 @@ func (as *ActionSuite) Test_TasksEdit_ShowsDueDate() {
 	as.Equal(200, res.Code)
 	as.Contains(res.Body.String(), `value="2099-06-15"`)
 }
+
+func (as *ActionSuite) Test_TasksIndex_ShowsCreatedDate() {
+	task := &models.Task{Title: "Con fecha de creación"}
+	as.NoError(as.DB.Create(task))
+
+	stored := &models.Task{}
+	as.NoError(as.DB.Find(stored, task.ID))
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+	as.Contains(res.Body.String(), `<span class="task-created-date">`+stored.CreatedAt.Format("02/01/2006")+`</span>`)
+}

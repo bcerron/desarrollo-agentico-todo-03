@@ -127,7 +127,7 @@ h1 {
 
 .task {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto auto;
   align-items: start;
   column-gap: 0.3rem;
   min-height: 61px;
@@ -141,6 +141,15 @@ h1 {
   padding: 0.65rem 0;
   overflow-wrap: anywhere;
   line-height: 1.55;
+}
+
+.task-created-date {
+  align-self: center;
+  flex-shrink: 0;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .task-due-date {
@@ -256,7 +265,7 @@ h1 {
 }
 
 .js .task-list[data-reorder-url] .task {
-  grid-template-columns: 28px 44px minmax(0, 1fr) auto auto;
+  grid-template-columns: 28px 44px minmax(0, 1fr) auto auto auto;
 }
 
 .js .drag-handle {
@@ -491,11 +500,11 @@ input:focus-visible {
   }
 
   .task {
-    grid-template-columns: 36px minmax(0, 1fr) auto auto;
+    grid-template-columns: 36px minmax(0, 1fr) auto auto auto;
   }
 
   .js .task-list[data-reorder-url] .task {
-    grid-template-columns: 28px 36px minmax(0, 1fr) auto auto;
+    grid-template-columns: 28px 36px minmax(0, 1fr) auto auto auto;
   }
 
   .task-toggle-button,
