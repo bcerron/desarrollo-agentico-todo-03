@@ -34,3 +34,5 @@ Deriva de `$ARGUMENTS` y de la evidencia del repositorio los archivos concretos,
 Detalla comandos reproducibles y el orden de los cambios. Usa solo validaciones disponibles y pertinentes, como `gofmt -l .`, `go vet ./...`, `go test -p 1 ./...`, `go build ./...` o `docker build -t todo .`. No añadas una herramienta ni una dependencia salvo que el encargo lo requiera explícitamente y el plan justifique el coste.
 
 Al terminar, informa solo de la ruta del plan, sus decisiones principales y las incertidumbres pendientes. Sugiere `/implement <ruta>` como siguiente paso.
+
+Si te ha invocado otra skill (por ejemplo `adw`), este informe no cierra el trabajo: es el resultado que esa skill necesita para seguir con su siguiente paso sin esperar al usuario.

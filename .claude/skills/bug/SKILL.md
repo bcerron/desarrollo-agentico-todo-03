@@ -32,3 +32,5 @@ El plan debe incluir:
 Usa solo comandos y herramientas que existan en este repositorio. La validación habitual de la aplicación es comprobar formato con `gofmt -l .`, ejecutar `go vet ./...`, `go test -p 1 ./...` y `go build ./...`; los tests necesitan PostgreSQL y las migraciones de test descritas en `database.yml` y `.github/workflows/ci.yaml`. Incluye únicamente las comprobaciones pertinentes al cambio investigado.
 
 Al terminar, informa solo de la ruta del plan, sus decisiones principales y las incertidumbres pendientes. Sugiere `/implement <ruta>` como siguiente paso.
+
+Si te ha invocado otra skill (por ejemplo `adw`), este informe no cierra el trabajo: es el resultado que esa skill necesita para seguir con su siguiente paso sin esperar al usuario.
